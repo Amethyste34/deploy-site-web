@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+            label 'connexion'
+    }
 
     stages {
         stage('Dependances') {
