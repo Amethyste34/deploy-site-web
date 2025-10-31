@@ -6,124 +6,124 @@ pipeline {
     stages {
         stage('Dependances') {
             steps {
-                echo '📦 Installation d\'Apache2...'
+                echo '[DEPENDANCES] Installation d\'Apache2...'
                 sh '''
                     sudo apt-get update
                     sudo apt-get install -y apache2
                     sudo systemctl start apache2
                     sudo systemctl status apache2 --no-pager
                 '''
-                echo '✅ Apache2 installé et démarré'
+                echo '[OK] Apache2 installe et demarre'
             }
         }
 
         stage('Checkout') {
             steps {
-                echo '📥 Récupération du code source depuis GitHub...'
+                echo '[CHECKOUT] Recuperation du code source depuis GitHub...'
                 checkout scm
                 sh 'ls -la'
-                echo '✅ Code récupéré avec succès'
+                echo '[OK] Code recupere avec succes'
             }
         }
 
         stage('Backup') {
             steps {
-                echo '💾 Sauvegarde de la version actuelle...'
+                echo '[BACKUP] Sauvegarde de la version actuelle...'
                 sh '''
                     if sudo [ -d /var/www/html.backup ]; then
                         sudo rm -rf /var/www/html.backup
                     fi
                     if sudo [ "$(ls -A /var/www/html 2>/dev/null)" ]; then
                         sudo cp -r /var/www/html /var/www/html.backup
-                        echo "✅ Sauvegarde créée"
+                        echo "[OK] Sauvegarde creee"
                     else
-                        echo "ℹ️  Pas de version précédente à sauvegarder"
+                        echo "[INFO] Pas de version precedente a sauvegarder"
                     fi
                 '''
-                echo '✅ Sauvegarde terminée'
+                echo '[OK] Sauvegarde terminee'
             }
         }
 
         stage('Deploy') {
             steps {
-                echo '🚀 Déploiement des fichiers vers le serveur web...'
+                echo '[DEPLOY] Deploiement des fichiers vers le serveur web...'
                 sh '''
-                    # Nettoyer le répertoire Apache (sauf les fichiers système)
+                    # Nettoyer le repertoire Apache (sauf les fichiers systeme)
                     sudo rm -f /var/www/html/index.html
 
                     # Copier les nouveaux fichiers
                     sudo cp -r index.html /var/www/html/
 
-                    # Vérifier les permissions
+                    # Verifier les permissions
                     sudo chmod 644 /var/www/html/index.html
                     sudo chown www-data:www-data /var/www/html/index.html
 
-                    # Lister les fichiers déployés
-                    echo "📂 Fichiers déployés :"
+                    # Lister les fichiers deployes
+                    echo "[INFO] Fichiers deployes :"
                     ls -la /var/www/html/
                 '''
-                echo '✅ Fichiers déployés avec succès'
+                echo '[OK] Fichiers deployes avec succes'
             }
         }
 
         stage('Test') {
             steps {
-                echo '🧪 Vérification du déploiement...'
+                echo '[TEST] Verification du deploiement...'
                 sh '''
-                    # Attendre qu'Apache soit prêt
+                    # Attendre qu'Apache soit pret
                     sleep 2
 
-                    # Tester la disponibilité du site
+                    # Tester la disponibilite du site
                     curl -f http://localhost/ > /dev/null
 
                     # Afficher un extrait de la page
-                    echo "📄 Contenu de la page :"
+                    echo "[INFO] Contenu de la page :"
                     echo "========================"
                     curl -s http://localhost/ | head -20
                     echo "========================"
                 '''
-                echo '✅ Site web opérationnel et accessible'
+                echo '[OK] Site web operationnel et accessible'
             }
         }
     }
 
     post {
         success {
-            echo '🎉 =========================================='
-            echo '🎉 DÉPLOIEMENT RÉUSSI !'
-            echo '🎉 =========================================='
-            echo '✅ Le site web est maintenant en ligne'
-            echo '🌐 Accessible sur http://localhost/'
-            echo '📧 Notification envoyée aux équipes'
-            echo '🎉 =========================================='
+            echo '=========================================='
+            echo '     DEPLOIEMENT REUSSI !'
+            echo '=========================================='
+            echo '[OK] Le site web est maintenant en ligne'
+            echo '[INFO] Accessible sur http://localhost/'
+            echo '[INFO] Notification envoyee aux equipes'
+            echo '=========================================='
         }
         failure {
-            echo '❌ =========================================='
-            echo '❌ ÉCHEC DU DÉPLOIEMENT !'
-            echo '❌ =========================================='
-            echo '🔄 Restauration de la version précédente...'
+            echo '=========================================='
+            echo '     ECHEC DU DEPLOIEMENT !'
+            echo '=========================================='
+            echo '[ROLLBACK] Restauration de la version precedente...'
             sh '''
                 if sudo [ -d /var/www/html.backup ]; then
                     sudo rm -rf /var/www/html/*
                     sudo cp -r /var/www/html.backup/* /var/www/html/
-                    echo "✅ Rollback effectué avec succès"
+                    echo "[OK] Rollback effectue avec succes"
                 else
-                    echo "⚠️  Pas de sauvegarde disponible"
+                    echo "[WARNING] Pas de sauvegarde disponible"
                 fi
             '''
-            echo '🚨 L\'équipe technique a été alertée'
-            echo '❌ =========================================='
+            echo '[ALERT] L\'equipe technique a ete alertee'
+            echo '=========================================='
         }
         always {
-            echo '🧹 Nettoyage des fichiers temporaires...'
+            echo '[CLEANUP] Nettoyage des fichiers temporaires...'
             sh '''
                 # Supprimer la sauvegarde
                 if sudo [ -d /var/www/html.backup ]; then
                     sudo rm -rf /var/www/html.backup
-                    echo "✅ Sauvegarde supprimée"
+                    echo "[OK] Sauvegarde supprimee"
                 fi
 
-                # Arrêter et désinstaller Apache2
+                # Arreter et desinstaller Apache2
                 sudo systemctl stop apache2 || true
                 sudo apt-get remove -y apache2 || true
                 sudo apt-get autoremove -y || true
@@ -131,7 +131,7 @@ pipeline {
                 # Nettoyer /var/www/html
                 sudo rm -rf /var/www/html/*
 
-                echo "✅ Nettoyage terminé"
+                echo "[OK] Nettoyage termine"
             '''
         }
     }
