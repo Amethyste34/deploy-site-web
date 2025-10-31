@@ -1,6 +1,6 @@
 pipeline {
     agent {
-            label 'connexion'
+        label 'connexion'
     }
 
     stages {
@@ -21,6 +21,7 @@ pipeline {
             steps {
                 echo '📥 Récupération du code source depuis GitHub...'
                 checkout scm
+                sh 'ls -la'
                 echo '✅ Code récupéré avec succès'
             }
         }
@@ -29,14 +30,14 @@ pipeline {
             steps {
                 echo '💾 Sauvegarde de la version actuelle...'
                 sh '''
-                    if [ -d /var/www/html.backup ]; then
-                        rm -rf /var/www/html.backup
+                    if sudo [ -d /var/www/html.backup ]; then
+                        sudo rm -rf /var/www/html.backup
                     fi
-                    if [ "$(ls -A /var/www/html 2>/dev/null)" ]; then
-                        cp -r /var/www/html /var/www/html.backup
-                        echo "Sauvegarde créée"
+                    if sudo [ "$(ls -A /var/www/html 2>/dev/null)" ]; then
+                        sudo cp -r /var/www/html /var/www/html.backup
+                        echo "✅ Sauvegarde créée"
                     else
-                        echo "Pas de version précédente à sauvegarder"
+                        echo "ℹ️  Pas de version précédente à sauvegarder"
                     fi
                 '''
                 echo '✅ Sauvegarde terminée'
@@ -48,16 +49,17 @@ pipeline {
                 echo '🚀 Déploiement des fichiers vers le serveur web...'
                 sh '''
                     # Nettoyer le répertoire Apache (sauf les fichiers système)
-                    rm -f /var/www/html/index.html
+                    sudo rm -f /var/www/html/index.html
 
                     # Copier les nouveaux fichiers
-                    cp -r index.html /var/www/html/
+                    sudo cp -r index.html /var/www/html/
 
                     # Vérifier les permissions
-                    chmod 644 /var/www/html/index.html
-                    chown www-data:www-data /var/www/html/index.html
+                    sudo chmod 644 /var/www/html/index.html
+                    sudo chown www-data:www-data /var/www/html/index.html
 
                     # Lister les fichiers déployés
+                    echo "📂 Fichiers déployés :"
                     ls -la /var/www/html/
                 '''
                 echo '✅ Fichiers déployés avec succès'
@@ -75,8 +77,10 @@ pipeline {
                     curl -f http://localhost/ > /dev/null
 
                     # Afficher un extrait de la page
-                    echo "Contenu de la page :"
-                    curl -s http://localhost/ | grep -i "déployé" || echo "Page accessible"
+                    echo "📄 Contenu de la page :"
+                    echo "========================"
+                    curl -s http://localhost/ | head -20
+                    echo "========================"
                 '''
                 echo '✅ Site web opérationnel et accessible'
             }
@@ -99,10 +103,12 @@ pipeline {
             echo '❌ =========================================='
             echo '🔄 Restauration de la version précédente...'
             sh '''
-                if [ -d /var/www/html.backup ]; then
-                    rm -rf /var/www/html/*
-                    cp -r /var/www/html.backup/* /var/www/html/
-                    echo "✅ Rollback effectué"
+                if sudo [ -d /var/www/html.backup ]; then
+                    sudo rm -rf /var/www/html/*
+                    sudo cp -r /var/www/html.backup/* /var/www/html/
+                    echo "✅ Rollback effectué avec succès"
+                else
+                    echo "⚠️  Pas de sauvegarde disponible"
                 fi
             '''
             echo '🚨 L\'équipe technique a été alertée'
@@ -112,19 +118,21 @@ pipeline {
             echo '🧹 Nettoyage des fichiers temporaires...'
             sh '''
                 # Supprimer la sauvegarde
-                if [ -d /var/www/html.backup ]; then
-                    rm -rf /var/www/html.backup
+                if sudo [ -d /var/www/html.backup ]; then
+                    sudo rm -rf /var/www/html.backup
+                    echo "✅ Sauvegarde supprimée"
                 fi
 
                 # Arrêter et désinstaller Apache2
-                systemctl stop apache2 || true
-                apt-get remove -y apache2 || true
-                apt-get autoremove -y || true
+                sudo systemctl stop apache2 || true
+                sudo apt-get remove -y apache2 || true
+                sudo apt-get autoremove -y || true
 
                 # Nettoyer /var/www/html
-                rm -rf /var/www/html/*
+                sudo rm -rf /var/www/html/*
+
+                echo "✅ Nettoyage terminé"
             '''
-            echo '✅ Nettoyage terminé'
         }
     }
 }
