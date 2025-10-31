@@ -10,8 +10,8 @@ pipeline {
                 sh '''
                     sudo apt-get update
                     sudo apt-get install -y apache2
-                    systemctl start apache2
-                    systemctl status apache2 --no-pager
+                    sudo systemctl start apache2
+                    sudo systemctl status apache2 --no-pager
                 '''
                 echo '✅ Apache2 installé et démarré'
             }
